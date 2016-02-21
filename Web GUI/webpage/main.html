@@ -1,0 +1,1935 @@
+<!DOCTYPE HTML>
+ <html>
+   <head>    
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css" />
+	<style>
+		body {
+			margin       :  0px;
+			padding      :  0px;
+			width	     :  133%; 
+			height       :  100%;
+		}
+		#rtxData {
+			float        :  left;
+			margin-left  :  10px;
+			margin-right :  1px;
+			margin-top   :  0px;
+			width        :  448px;
+		}
+	
+		#wPanel2{
+			float        :  left;
+			margin-left  :  -21px;
+			margin-right :  1px;
+			margin-top   :  0px;
+			width        :  425px;
+		}
+		
+		#wPanel3{
+			float        :  left;
+			margin-left  :  3px;
+			margin-top   :  0px;
+			margin-right :  1px;
+			width        :  250px;
+		}
+
+		#wPanel4{
+			float        :  left;
+			margin-left  :  178px;
+			margin-top   :  0px;
+			margin-right :  1px;
+			width        :  250px;
+		}
+		
+		h2{
+			text-align   :  center;
+		}
+	
+		#btnHolder {
+			text-align   :  center;
+		}
+		
+		#accordion1 .ui-accordion-content { padding: 0; }
+		#accordion2 .ui-accordion-content { padding: 0; }
+		#accordion3 .ui-accordion-content { padding: 0; }
+		#accordion4 .ui-accordion-content { padding: 0; } 
+	        #accordion4 .ui-accordion-header.ui-state-active { background: #A5FFFF; }
+
+		.noty-message{
+			    width:350px;
+			    margin-left  :  15px;
+			    margin-top   :  5px;
+			    height:40px;
+		}
+
+
+	</style>
+
+
+	
+	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+	<script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+	
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="smoothie.js"></script>
+
+	<script type="text/javascript" src="jquery.noty.packaged.min.js"></script>
+
+	<script>
+		
+		window.requestAnimFrame = (function(callback) {	
+			return window.requestAnimationFrame    || 
+				window.webkitRequestAnimationFrame || 
+				window.mozRequestAnimationFrame    || 
+				window.oRequestAnimationFrame      || 
+				window.msRequestAnimationFrame     ||
+			
+			function(callback) 
+			{
+				window.setTimeout(callback, 1000 / 30);  // 30 frames per second
+			};
+		})();
+
+		
+		function nodestatus(text, type, layout, kill) {
+			var n = noty({
+			    text        : text,
+			    type        : type,
+			    dismissQueue: true,
+			    layout      : layout,
+			    closeWith   : ['none'],
+                	    theme       : 'relax',
+			    killer	: kill,
+			    maxVisible  : 3,
+			});
+		}
+
+
+
+		// Global Variables
+		var iosocket; 
+		
+		var node1data1  =  0, node1data2  =  0, node1data3  =  0; node1data4 = 0;
+		var node2data1  =  0, node2data2  =  0, node2data3  =  0; node2data4 = 0;
+		var node3data1  =  0, node3data2  =  0, node3data3  =  0; node3data4 = 0;
+		var node4data1  =  0, node4data2  =  0, node4data3  =  0; node4data4 = 0;
+
+		var node1status =  0;
+		var node2status =  0;
+		var node3status =  0;
+		var node4status =  0;
+
+		var node1var    =  0;
+		var node2var    =  0;
+		var node3var    =  0;
+		var node4var    =  0;
+
+		var xyz 	=  0;
+		
+		var analogmult    =  new Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+		var minVal        =  new Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		var maxVal        =  new Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+		var graphDataSel  =  new Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		var graphData     =  new Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+		var analogData    =  new Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		var analogData1   =  new Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		var alertData     =  new Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+		/* 3 second Timeout */
+		
+		var repeater;	
+
+		function updateNodeStatus() {
+ 			
+			var msg1 = "";
+			var msg2 = "";
+			var msg3 = "";
+
+			/*  Update Alert Status */
+
+			alertData[0]    =  document.getElementById("n1a1SEL"); 
+			alertData[1]    =  document.getElementById("n1a2SEL"); 
+			alertData[2]    =  document.getElementById("n1a3SEL"); 
+			alertData[3]    =  document.getElementById("n1a4SEL"); 
+			alertData[4]    =  document.getElementById("n1a5SEL"); 
+
+			alertData[5]    =  document.getElementById("n2a1SEL"); 
+			alertData[6]    =  document.getElementById("n2a2SEL"); 
+			alertData[7]    =  document.getElementById("n2a3SEL"); 
+			alertData[8]    =  document.getElementById("n2a4SEL"); 
+			alertData[9]    =  document.getElementById("n2a5SEL"); 
+
+			alertData[10]   =  document.getElementById("n3a1SEL"); 
+			alertData[11]   =  document.getElementById("n3a2SEL"); 
+			alertData[12]   =  document.getElementById("n3a3SEL"); 	
+			alertData[13]   =  document.getElementById("n3a4SEL"); 	
+			alertData[14]   =  document.getElementById("n3a5SEL"); 
+
+			alertData[15]   =  document.getElementById("n4a1SEL"); 
+			alertData[16]   =  document.getElementById("n4a2SEL"); 
+			alertData[17]   =  document.getElementById("n4a3SEL"); 	
+			alertData[18]   =  document.getElementById("n4a4SEL"); 	
+			alertData[19]   =  document.getElementById("n4a5SEL");	
+
+
+			/* Get Analog Data */
+
+			analogData1[0]   =  document.getElementById("node1adc1");
+			analogData1[1]   =  document.getElementById("node1adc2");
+			analogData1[2]   =  document.getElementById("node1adc3");
+			analogData1[3]   =  document.getElementById("node1adc4");
+			analogData1[4]   =  document.getElementById("node1adc5");
+		
+			analogData1[5]   =  document.getElementById("node2adc1");
+			analogData1[6]   =  document.getElementById("node2adc2");
+			analogData1[7]   =  document.getElementById("node2adc3");
+			analogData1[8]   =  document.getElementById("node2adc4");
+			analogData1[9]   =  document.getElementById("node2adc5");
+
+			analogData1[10]  =  document.getElementById("node3adc1");
+			analogData1[11]  =  document.getElementById("node3adc2");
+			analogData1[12]  =  document.getElementById("node3adc3");
+			analogData1[13]  =  document.getElementById("node3adc4");
+			analogData1[14]  =  document.getElementById("node3adc5");
+
+			analogData1[15]  =  document.getElementById("node4adc1");
+			analogData1[16]  =  document.getElementById("node4adc2");
+			analogData1[17]  =  document.getElementById("node4adc3");
+			analogData1[18]  =  document.getElementById("node4adc4");
+			analogData1[19]  =  document.getElementById("node4adc5");
+
+			/* Node 1 */
+
+			if(node1status == 1) {
+				for (i = 0; i < 5; i++) {
+		    
+					switch(	alertData[i].selectedIndex ) {
+						case  0  : break;
+						case  1  : if(parseFloat(analogData1[i].value) > minVal[i] && parseFloat(analogData1[i].value) < maxVal[i]) {
+								node1status = 2;
+								msg1 = "<b>NODE #1</b>: ALERT | ADC " + (i+1) + " | IN";
+							   }					
+							   break;
+						case  2  : if(parseFloat(analogData1[i].value) < minVal[i] || parseFloat(analogData1[i].value) > maxVal[i]) {
+								node1status = 2;
+								msg1 = "<b>NODE #1</b>: ALERT | ADC " + (i+1) + " | OUT"
+							   }
+							   break;
+						default  : break;
+					}
+				}
+			}
+
+			/* Node 2 */
+
+			if(node2status == 1) {
+				for (i = 5; i < 10; i++) {
+		    
+					switch(	alertData[i].selectedIndex ) {
+						case  0  : break;
+						case  1  : if(parseFloat(analogData1[i].value) > minVal[i] && parseFloat(analogData1[i].value) < maxVal[i]) {
+								node2status = 2;
+								msg2 = "<b>NODE #2</b>: ALERT | ADC " + (i-4) + " | IN";
+							   }					
+							   break;
+						case  2  : if(parseFloat(analogData1[i].value) < minVal[i] || parseFloat(analogData1[i].value) > maxVal[i]) {
+								node2status = 2;
+								msg2 = "<b>NODE #2</b>: ALERT | ADC " + (i-4) + " | OUT"
+							   }
+							   break;
+						default  : break;
+					}
+				}
+			}
+
+			/* Node 3 */
+
+			if(node3status == 1) {
+				for (i = 10; i < 15; i++) {
+		    
+					switch(	alertData[i].selectedIndex ) {
+						case  0  : break;
+						case  1  : if(parseFloat(analogData1[i].value) > minVal[i] && parseFloat(analogData1[i].value) < maxVal[i]) {
+								node3status = 2;
+								msg3 = "<b>NODE #3</b>: ALERT | ADC " + (i-9) + " | IN";
+							   }					
+							   break;
+						case  2  : if(parseFloat(analogData1[i].value) < minVal[i] || parseFloat(analogData1[i].value) > maxVal[i]) {
+								node3status = 2;
+								msg3 = "<b>NODE #3</b>: ALERT | ADC " + (i-9) + " | OUT"
+							   }
+							   break;
+						default  : break;
+					}
+				}
+			}
+
+
+			/* Node 4 */
+
+			if(node4status == 1) {
+				for (i = 15; i < 20; i++) {
+		    
+					switch(	alertData[i].selectedIndex ) {
+						case  0  : break;
+						case  1  : if(parseFloat(analogData1[i].value) > minVal[i] && parseFloat(analogData1[i].value) < maxVal[i]) {
+								node3status = 2;
+
+							   }					
+							   break;
+						case  2  : if(parseFloat(analogData1[i].value) < minVal[i] || parseFloat(analogData1[i].value) > maxVal[i]) {
+								node3status = 2;
+								
+							   }
+							   break;
+						default  : break;
+					}
+				}
+			}
+
+
+			/* Update Node Status */
+			
+
+			switch(	node1status ) {
+				case  0  : nodestatus('<b>NODE #1</b>: Disconnected', 'info', 'custom1', true); 
+					   document.getElementById("img1").src = "disconnect.jpg";
+					   sendIOPacket('A'); break;
+				case  1  : nodestatus('<b>NODE #1</b>: Connected', 'success', 'custom1', true); 
+					   
+					   sendIOPacket('B'); node1status = 4; break;
+				case  2  : nodestatus(msg1, 'warning', 'custom1', true); 
+					   document.getElementById("img1").src = "error.jpg";
+					   sendIOPacket('C'); node1status = 4;	break;
+				case  4  : nodestatus('<b>NODE #1</b>: Disconnected', 'info', 'custom1', true);
+					   document.getElementById("img1").src = "disconnect.jpg";
+					   sendIOPacket('A'); break;
+				default  : break;
+			}
+
+			switch(	node2status ) {
+				case  0  : nodestatus('<b>NODE #2</b>: Disconnected', 'info', 'custom2', false);
+				           document.getElementById("img2").src = "disconnect.jpg";
+					   sendIOPacket('D'); break;
+				case  1  : nodestatus('<b>NODE #2</b>: Connected', 'success', 'custom2', false); 
+					   
+					   sendIOPacket('E'); node2status = 4; break;
+				case  2  : nodestatus(msg2, 'warning', 'custom2', false); 
+					   document.getElementById("img2").src = "error.jpg";
+					   sendIOPacket('F'); node2status = 4;	break;
+				case  4  : nodestatus('<b>NODE #2</b>: Disconnected', 'info', 'custom2', false);
+					   document.getElementById("img2").src = "disconnect.jpg";
+					   sendIOPacket('D'); break;
+				default  : break;
+			}
+
+			switch(	node3status ) {
+				case  0  : nodestatus('<b>NODE #3</b>: Disconnected', 'info', 'custom3', false);
+					   document.getElementById("img3").src = "disconnect.jpg";
+					   sendIOPacket('G'); break;
+				case  1  : nodestatus('<b>NODE #3</b>: Connected', 'success', 'custom3', false); 
+					   
+					   sendIOPacket('H'); node3status = 4; break;
+				case  2  : nodestatus(msg3, 'warning', 'custom3', false); 
+					   document.getElementById("img3").src = "error.jpg";
+					   sendIOPacket('I'); node3status = 4;	break;
+				case  4  : nodestatus('<b>NODE #3</b>: Disconnected', 'info', 'custom3', false);
+					   document.getElementById("img3").src = "disconnect.jpg";
+					   sendIOPacket('G'); break;
+				default  : break;
+			}
+
+			switch(	node4status ) {
+				case  0  : 
+					   document.getElementById("img4").src = "disconnect.jpg";
+					   sendIOPacket('J'); break;
+				case  1  : 
+					    
+					   sendIOPacket('K'); node4status = 4; break;
+				case  2  : 
+					   document.getElementById("img4").src = "error.jpg";
+					   sendIOPacket('L'); node4status = 4;	break;
+				case  4  : 
+					   document.getElementById("img4").src = "disconnect.jpg";
+					   sendIOPacket('J'); break;
+				default  : break;
+			}
+
+ 			repeater = setTimeout(updateNodeStatus, 5000);
+		}		
+
+
+		/* Update ADC Multiplier */
+		function updateMult(Node, ADC, value) 
+		{
+			if(isNaN(value)) {
+				value = 1;			
+			}
+
+			if(Node == 1) {
+				switch(	ADC ) {
+					case  1  : analogmult[0] = value; break;
+					case  2  : analogmult[1] = value; break;
+					case  3  : analogmult[2] = value; break;
+					case  4  : analogmult[3] = value; break;
+					case  5  : analogmult[4] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 2) {
+				switch(	ADC ) {
+					case  1  : analogmult[5] = value; break;
+					case  2  : analogmult[6] = value; break;
+					case  3  : analogmult[7] = value; break;
+					case  4  : analogmult[8] = value; break;
+					case  5  : analogmult[9] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 3) {
+				switch(	ADC ) {
+					case  1  : analogmult[10] = value; break;
+					case  2  : analogmult[11] = value; break;
+					case  3  : analogmult[12] = value; break;
+					case  4  : analogmult[13] = value; break;
+					case  5  : analogmult[14] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 4) {
+				switch(	ADC ) {
+					case  1  : analogmult[15] = value; break;
+					case  2  : analogmult[16] = value; break;
+					case  3  : analogmult[17] = value; break;
+					case  4  : analogmult[18] = value; break;
+					case  5  : analogmult[19] = value; break;
+					default  : break;
+				}
+			}
+		}
+
+		/* Update MIN Value */
+		function updateMin(Node, ADC, value) 
+		{
+			if(isNaN(value)) {
+				value = 1;			
+			}
+
+			if(Node == 1) {
+				switch(	ADC ) {
+					case  1  : minVal[0] = value; break; 
+					case  2  : minVal[1] = value; break;
+					case  3  : minVal[2] = value; break;
+					case  4  : minVal[3] = value; break;
+					case  5  : minVal[4] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 2) {
+				switch(	ADC ) {
+					case  1  : minVal[5] = value; break;
+					case  2  : minVal[6] = value; break;
+					case  3  : minVal[7] = value; break;
+					case  4  : minVal[8] = value; break;
+					case  5  : minVal[9] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 3) {
+				switch(	ADC ) {
+					case  1  : minVal[10] = value; break;
+					case  2  : minVal[11] = value; break;
+					case  3  : minVal[12] = value; break;
+					case  4  : minVal[13] = value; break;
+					case  5  : minVal[14] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 4) {
+				switch(	ADC ) {
+					case  1  : minVal[15] = value; break;
+					case  2  : minVal[16] = value; break;
+					case  3  : minVal[17] = value; break;
+					case  4  : minVal[18] = value; break;
+					case  5  : minVal[19] = value; break;
+					default  : break;
+				}
+			}
+		}
+
+		/* Update MAX Value */
+		function updateMax(Node, ADC, value) 
+		{
+			if(isNaN(value)) {
+				value = 1;			
+			}
+
+			if(Node == 1) {
+				switch(	ADC ) {
+					case  1  : maxVal[0] = value; break;
+					case  2  : maxVal[1] = value; break;
+					case  3  : maxVal[2] = value; break;
+					case  4  : maxVal[3] = value; break;
+					case  5  : maxVal[4] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 2) {
+				switch(	ADC ) {
+					case  1  : maxVal[5] = value; break;
+					case  2  : maxVal[6] = value; break;
+					case  3  : maxVal[7] = value; break;
+					case  4  : maxVal[8] = value; break;
+					case  5  : maxVal[9] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 3) {
+				switch(	ADC ) {
+					case  1  : maxVal[10] = value; break;
+					case  2  : maxVal[11] = value; break;
+					case  3  : maxVal[12] = value; break;
+					case  4  : maxVal[13] = value; break;
+					case  5  : maxVal[14] = value; break;
+					default  : break;
+				}
+			}
+
+			if(Node == 4) {
+				switch(	ADC ) {
+					case  1  : maxVal[15] = value; break;
+					case  2  : maxVal[16] = value; break;
+					case  3  : maxVal[17] = value; break;
+					case  4  : maxVal[18] = value; break;
+					case  5  : maxVal[19] = value; break;
+					default  : break;
+				}
+			}
+		}
+
+			
+		/* NODE 3 : Graph1 */		
+		function initNode3Graph1()  //Initialize Node 3 Graph 1
+		{
+			var smoothie1 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+			
+			var plot1 = new TimeSeries();
+			
+			smoothie1.streamTo(document.getElementById("node3Graph1"));
+			smoothie1.addTimeSeries(plot1, { strokeStyle:'rgb(0, 255, 0)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot1.append(new Date().getTime(), Number(node3data1) );
+				}, 1000);
+		}
+
+		/* NODE 3 : Graph2 */
+		function initNode3Graph2()
+		{
+			var smoothie2 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot2 = new TimeSeries();
+			
+			smoothie2.streamTo(document.getElementById("node3Graph2"));
+			smoothie2.addTimeSeries(plot2, { strokeStyle:'rgb(0, 0, 255)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot2.append(new Date().getTime(), Number(node3data2) );
+				}, 1000);
+		}
+
+		/* NODE 3 : Graph3 */
+		function initNode3Graph3()
+		{
+			var smoothie3 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot3 = new TimeSeries();
+			
+			smoothie3.streamTo(document.getElementById("node3Graph3"));
+			smoothie3.addTimeSeries(plot3, { strokeStyle:'rgb(255, 0, 0)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot3.append(new Date().getTime(), Number(node3data3) );
+				}, 1000);
+		}
+
+		/* NODE 2 : Graph1 */
+		function initNode2Graph1()
+		{
+			var smoothie5 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot5 = new TimeSeries();
+			
+			smoothie5.streamTo(document.getElementById("node2Graph1"));
+			smoothie5.addTimeSeries(plot5, { strokeStyle:'rgb(0, 0, 255)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot5.append(new Date().getTime(), Number(node2data1) );
+				}, 1000);
+		}
+
+		/* NODE 2 : Graph2 */
+		function initNode2Graph2()
+		{
+			var smoothie6 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot6 = new TimeSeries();
+			
+			smoothie6.streamTo(document.getElementById("node2Graph2"));
+			smoothie6.addTimeSeries(plot6, { strokeStyle:'rgb(255, 0, 0)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot6.append(new Date().getTime(), Number(node2data2) );
+				}, 1000);
+		}
+
+		/* NODE 2 : Graph3 */
+		function initNode2Graph3()
+		{
+			var smoothie7 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot7 = new TimeSeries();
+			
+			smoothie7.streamTo(document.getElementById("node2Graph3"));
+			smoothie7.addTimeSeries(plot7, { strokeStyle:'rgb(0, 255, 0)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot7.append(new Date().getTime(), Number(node2data3) );
+				}, 1000);
+		}
+
+		/* NODE 2 : Graph3 */
+		function initNode2Graph4()
+		{
+			var smoothie8 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot8 = new TimeSeries();
+			
+			smoothie8.streamTo(document.getElementById("node2Graph4"));
+			smoothie8.addTimeSeries(plot8, { strokeStyle:'rgb(0, 255, 0)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot8.append(new Date().getTime(), Number(node2data4) );
+				}, 1000);
+		}
+
+
+		/* NODE 1 : Graph1 */
+		function initNode1Graph1()
+		{
+			var smoothie9 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot9 = new TimeSeries();
+			
+			smoothie9.streamTo(document.getElementById("node1Graph1"));
+			smoothie9.addTimeSeries(plot9, { strokeStyle:'rgb(255, 0, 0)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot9.append(new Date().getTime(), Number(node1data1) );
+				}, 1000);
+		}
+
+		/* NODE 1 : Graph2 */
+		function initNode1Graph2()
+		{
+			var smoothie10 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot10 = new TimeSeries();
+			
+			smoothie10.streamTo(document.getElementById("node1Graph2"));
+			smoothie10.addTimeSeries(plot10, { strokeStyle:'rgb(255, 255, 255)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot10.append(new Date().getTime(), Number(node1data2) );
+				}, 1000);
+		}
+
+		/* NODE 1 : Graph3 */
+		function initNode1Graph3()
+		{
+			var smoothie11 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot11 = new TimeSeries();
+			
+			smoothie11.streamTo(document.getElementById("node1Graph3"));
+			smoothie11.addTimeSeries(plot11, { strokeStyle:'rgb(255, 0, 255)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot11.append(new Date().getTime(), Number(node1data3) );
+				}, 1000);
+		}
+
+
+		/* NODE 4 : Graph1 */
+		function initNode4Graph1()
+		{
+			var smoothie12 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel:200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot12 = new TimeSeries();
+			
+			smoothie12.streamTo(document.getElementById("node4Graph1"));
+			smoothie12.addTimeSeries(plot12, { strokeStyle:'rgb(255, 0, 255)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot12.append(new Date().getTime(), Number(node4data1) );
+				}, 1000);
+		}
+
+		/* NODE 4 : Graph2 */
+		function initNode4Graph2()
+		{
+			var smoothie13 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot13 = new TimeSeries();
+			
+			smoothie13.streamTo(document.getElementById("node4Graph2"));
+			smoothie13.addTimeSeries(plot13, { strokeStyle:'rgb(255, 0, 0)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot13.append(new Date().getTime(), Number(node4data2) );
+				}, 1000);
+		}
+
+		/* NODE 4 : Graph3 */
+		function initNode4Graph3()
+		{
+			var smoothie14 = new SmoothieChart(
+							{
+								strokeStyle:'rgb(0, 120, 0)', fillStyle:'rgb(0, 0, 0)',
+								lineWidth: 1, millisPerPixel: 200, interpolation:'linear',
+								grid:{sharpLines:true,millisPerLine:5000,verticalSections:5},
+								timestampFormatter:SmoothieChart.timeFormatter,
+							});
+							
+			var plot14 = new TimeSeries();
+			
+			smoothie14.streamTo(document.getElementById("node4Graph3"));
+			smoothie14.addTimeSeries(plot14, { strokeStyle:'rgb(255, 0, 255)', lineWidth:2 });
+			
+			setInterval(function() {
+						plot14.append(new Date().getTime(), Number(node4data3) );
+				}, 1000);
+		}
+
+		function initSocketIO()  //Intialize WebSockets : Acquire DATA
+		{
+			iosocket = io.connect();
+			iosocket.on('onconnection', function(value) {
+								
+				iosocket.on('updateData', function (recievedData) 
+				{
+					var ch = -1;
+					var sub = 0;
+					var temp = 0;
+					var tempData = recievedData.pollOneValue;  //receivedData
+					
+					analogData[0]   =  document.getElementById("node1adc1");
+					analogData[1]   =  document.getElementById("node1adc2");
+					analogData[2]   =  document.getElementById("node1adc3");
+					analogData[3]   =  document.getElementById("node1adc4");
+					analogData[4]   =  document.getElementById("node1adc5");
+					
+					analogData[5]   =  document.getElementById("node2adc1");
+					analogData[6]   =  document.getElementById("node2adc2");
+					analogData[7]   =  document.getElementById("node2adc3");
+					analogData[8]   =  document.getElementById("node2adc4");
+					analogData[9]   =  document.getElementById("node2adc5");
+
+					analogData[10]  =  document.getElementById("node3adc1");
+					analogData[11]  =  document.getElementById("node3adc2");
+					analogData[12]  =  document.getElementById("node3adc3");
+					analogData[13]  =  document.getElementById("node3adc4");
+					analogData[14]  =  document.getElementById("node3adc5");
+
+					analogData[15]  =  document.getElementById("node4adc1");
+					analogData[16]  =  document.getElementById("node4adc2");
+					analogData[17]  =  document.getElementById("node4adc3");
+					analogData[18]  =  document.getElementById("node4adc4");
+					analogData[19]  =  document.getElementById("node4adc5");
+
+					switch (tempData[tempData.length-1]) {
+						case 'A' :  ch = 0;  sub = 1000;  temp = 1; break;
+						case 'B' :  ch = 1;  sub = 1000;   	    break;
+						case 'C' :  ch = 2;  sub = 1000;  temp = 1; break;
+						case 'D' :  ch = 3;  sub = 0; 	 	    break;
+						case 'E' :  ch = 4;  sub = 0;  	 	    break;
+						
+						case 'F' :  ch = 5;  sub = 1000;  temp = 1; break;
+						case 'G' :  ch = 6;  sub = 1000; 	    break;
+						case 'H' :  ch = 7;  sub = 1000;            break;
+						case 'I' :  ch = 8;  sub = 0;     temp = 1; break;
+						case 'J' :  ch = 9;  sub = 0;     temp = 1; break;
+
+						case 'K' :  ch = 10;  sub = 1000; temp = 1; break;
+						case 'L' :  ch = 11;  sub = 1000;  	    break;
+						case 'M' :  ch = 12;  sub = 1000; temp = 1; break;
+						case 'N' :  ch = 13;  sub = 0; 	 	    break;
+						case 'O' :  ch = 14;  sub = 0;  	    break;
+
+						case 'P' :  ch = 15; sub = 0;   	    break;
+						case 'Q' :  ch = 16; sub = 0; 	            break;
+						case 'R' :  ch = 17; sub = 0; 		    break;
+						case 'S' :  ch = 18; sub = 0; 	  temp = 1; break;
+						case 'T' :  ch = 19; sub = 0; 	  temp = 1; break;
+
+						default  :  break;
+					}
+					
+					if(ch == 0) {
+						node1status = 1;	// Connected
+						if(node1var == 0) {	
+							document.getElementById("img1").src = "ok.jpg";		
+							node1var = 1;	
+						}
+						else {
+							document.getElementById("img1").src = "rx.jpeg";	
+							node1var = 0;				
+						}
+					}
+
+					if(ch == 5) {
+						node2status = 1;	// Connected
+						if(node2var == 0) {	
+							document.getElementById("img2").src = "ok.jpg";		
+							node2var = 1;	
+						}
+						else {
+							document.getElementById("img2").src = "rx.jpeg";	
+							node2var = 0;				
+						}			
+					}
+
+					if(ch == 10) {
+						node3status = 1;	// Connected	
+						if(node3var == 0) {	
+							document.getElementById("img3").src = "ok.jpg";		
+							node3var = 1;	
+						}
+						else {
+							document.getElementById("img3").src = "rx.jpeg";	
+							node3var = 0;				
+						}			
+					}
+
+					if(ch == 15) {
+						node4status = 1;	// Connected	
+						if(node4var == 0) {	
+							document.getElementById("img4").src = "ok.jpg";		
+							node4var = 1;	
+						}
+						else {
+							document.getElementById("img4").src = "rx.jpeg";	
+							node4var = 0;				
+						}			
+					}
+
+					if(temp == 1) {
+						analogData[ch].value = 0;
+					}
+
+					else if(ch != -1) {
+						tempData = tempData.substring(0, tempData.length - 1)
+						var temp = (Number(tempData) - sub) * Number(analogmult[ch]);
+						analogData[ch].value = parseFloat((temp).toFixed(1));
+					}
+					
+					graphData[0]    =  document.getElementById("node1g1");
+					graphData[1]    =  document.getElementById("node1g2");
+					graphData[2]    =  document.getElementById("node1g3");
+
+					graphData[3]    =  document.getElementById("node2g1");
+					graphData[4]    =  document.getElementById("node2g2");
+					graphData[5]    =  document.getElementById("node2g3");
+
+					graphData[6]    =  document.getElementById("node3g1");
+					graphData[7]    =  document.getElementById("node3g2");
+					graphData[8]    =  document.getElementById("node3g3");
+
+					graphData[9]    =  document.getElementById("node4g1");
+					graphData[10]   =  document.getElementById("node4g2");
+					graphData[11]   =  document.getElementById("node4g3");
+
+					graphDataSel[0] =  document.getElementById("n1g1SEL");
+					graphDataSel[1] =  document.getElementById("n1g2SEL");
+					graphDataSel[2] =  document.getElementById("n1g3SEL");
+
+					graphDataSel[3] =  document.getElementById("n2g1SEL");
+					graphDataSel[4] =  document.getElementById("n2g2SEL");
+					graphDataSel[5] =  document.getElementById("n2g3SEL");
+
+					graphDataSel[6] =  document.getElementById("n3g1SEL");
+					graphDataSel[7] =  document.getElementById("n3g2SEL");
+					graphDataSel[8] =  document.getElementById("n3g3SEL");
+
+				        graphDataSel[9]  =  document.getElementById("n4g1SEL");
+					graphDataSel[10] =  document.getElementById("n4g2SEL");
+					graphDataSel[11] =  document.getElementById("n4g3SEL");
+
+
+					switch (graphDataSel[0].selectedIndex) {
+						case 0 :  graphData[0].value = analogData[0].value;  break;
+						case 1 :  graphData[0].value = analogData[1].value;  break;
+						case 2 :  graphData[0].value = analogData[2].value;  break;
+						case 3 :  graphData[0].value = analogData[3].value;  break;
+						case 4 :  graphData[0].value = analogData[4].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[1].selectedIndex) {
+						case 0 :  graphData[1].value = analogData[0].value;  break;
+						case 1 :  graphData[1].value = analogData[1].value;  break;
+						case 2 :  graphData[1].value = analogData[2].value;  break;
+						case 3 :  graphData[1].value = analogData[3].value;  break;
+						case 4 :  graphData[1].value = analogData[4].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[2].selectedIndex) {
+						case 0 :  graphData[2].value = analogData[0].value;  break;
+						case 1 :  graphData[2].value = analogData[1].value;  break;
+						case 2 :  graphData[2].value = analogData[2].value;  break;
+						case 3 :  graphData[2].value = analogData[3].value;  break;
+						case 4 :  graphData[2].value = analogData[4].value;  break;
+
+						default  :  break;
+					}
+
+
+					switch (graphDataSel[3].selectedIndex) {
+						case 0 :  graphData[3].value = analogData[5].value;  break;
+						case 1 :  graphData[3].value = analogData[6].value;  break;
+						case 2 :  graphData[3].value = analogData[7].value;  break;
+						case 3 :  graphData[3].value = analogData[8].value;  break;
+						case 4 :  graphData[3].value = analogData[9].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[4].selectedIndex) {
+						case 0 :  graphData[4].value = analogData[5].value;  break;
+						case 1 :  graphData[4].value = analogData[6].value;  break;
+						case 2 :  graphData[4].value = analogData[7].value;  break;
+						case 3 :  graphData[4].value = analogData[8].value;  break;
+						case 4 :  graphData[4].value = analogData[9].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[5].selectedIndex) {
+						case 0 :  graphData[5].value = analogData[5].value;  break;
+						case 1 :  graphData[5].value = analogData[6].value;  break;
+						case 2 :  graphData[5].value = analogData[7].value;  break;
+						case 3 :  graphData[5].value = analogData[8].value;  break;
+						case 4 :  graphData[5].value = analogData[9].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[6].selectedIndex) {
+						case 0 :  graphData[6].value = analogData[10].value;  break;
+						case 1 :  graphData[6].value = analogData[11].value;  break;
+						case 2 :  graphData[6].value = analogData[12].value;  break;
+						case 3 :  graphData[6].value = analogData[13].value;  break;
+						case 4 :  graphData[6].value = analogData[14].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[7].selectedIndex) {
+						case 0 :  graphData[7].value = analogData[10].value;  break;
+						case 1 :  graphData[7].value = analogData[11].value;  break;
+						case 2 :  graphData[7].value = analogData[12].value;  break;
+						case 3 :  graphData[7].value = analogData[13].value;  break;
+						case 4 :  graphData[7].value = analogData[14].value;  break;
+
+						default  :  break;
+					}
+	
+					switch (graphDataSel[8].selectedIndex) {
+						case 0 :  graphData[8].value = analogData[10].value;  break;
+						case 1 :  graphData[8].value = analogData[11].value;  break;
+						case 2 :  graphData[8].value = analogData[12].value;  break;
+						case 3 :  graphData[8].value = analogData[13].value;  break;
+						case 4 :  graphData[8].value = analogData[14].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[9].selectedIndex) {
+						case 0 :  graphData[9].value = analogData[15].value;  break;
+						case 1 :  graphData[9].value = analogData[16].value;  break;
+						case 2 :  graphData[9].value = analogData[17].value;  break;
+						case 3 :  graphData[9].value = analogData[18].value;  break;
+						case 4 :  graphData[9].value = analogData[19].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[10].selectedIndex) {
+						case 0 :  graphData[10].value = analogData[15].value;  break;
+						case 1 :  graphData[10].value = analogData[16].value;  break;
+						case 2 :  graphData[10].value = analogData[17].value;  break;
+						case 3 :  graphData[10].value = analogData[18].value;  break;
+						case 4 :  graphData[10].value = analogData[19].value;  break;
+
+						default  :  break;
+					}
+
+					switch (graphDataSel[11].selectedIndex) {
+						case 0 :  graphData[11].value = analogData[15].value;  break;
+						case 1 :  graphData[11].value = analogData[16].value;  break;
+						case 2 :  graphData[11].value = analogData[17].value;  break;
+						case 3 :  graphData[11].value = analogData[18].value;  break;
+						case 4 :  graphData[11].value = analogData[19].value;  break;
+
+						default  :  break;
+					}
+					
+					node1data1 = graphData[0].value;
+					node1data2 = graphData[1].value;
+					node1data3 = graphData[2].value;
+
+					node2data1 = graphData[3].value;
+					node2data2 = graphData[4].value;
+					node2data3 = graphData[5].value;
+
+					node3data1 = graphData[6].value;
+					node3data2 = graphData[7].value;
+					node3data3 = graphData[8].value;
+
+					node4data1 = graphData[9].value;
+					node4data2 = graphData[10].value;
+					node4data3 = graphData[11].value;
+				});
+			});
+		}
+	
+		function sendIOPacket(value)
+		{	
+			iosocket.emit('buttonval', value);
+		}
+		   
+		/* Initialization Routines */
+		window.onload = function() {
+			 initSocketIO();
+
+			 /* Initialize Graphs */
+			
+			 initNode4Graph1();
+			 initNode4Graph2();
+			 initNode4Graph3();
+
+			 initNode3Graph1();
+			 initNode3Graph2();
+			 initNode3Graph3();
+
+			 initNode2Graph1();
+			 initNode2Graph2();
+			 initNode2Graph3();
+
+			 initNode1Graph1();
+			 initNode1Graph2();
+			 initNode1Graph3();
+
+			 document.getElementById("n1g2SEL").selectedIndex = 3;
+			 document.getElementById("n1g3SEL").selectedIndex = 4;
+
+			 document.getElementById("n2g2SEL").selectedIndex = 3;
+			 document.getElementById("n2g3SEL").selectedIndex = 4;
+
+			 document.getElementById("n3g2SEL").selectedIndex = 3;
+			 document.getElementById("n3g3SEL").selectedIndex = 4;
+
+			 /* Update Node Status */
+			 updateNodeStatus();	
+
+			 $(function() {
+				$( "#accordion1" ).accordion({
+					heightStyle: "content"
+				});
+			 });
+
+			 $(function() {
+				$( "#accordion2" ).accordion({
+					heightStyle: "content"
+				});
+			 });			  
+			
+			 $(function() {
+				$( "#accordion3" ).accordion({
+					heightStyle: "content"
+				});
+			 });
+
+			 $(function() {
+				$( "#accordion4" ).accordion({
+					heightStyle: "content"
+				});
+			 });
+		};
+		  
+		$(document).ready(function() {
+
+			$('#rtxData').css('transform', 'scale(1.00)');	
+			$('#wPanel2').css('transform', 'scale(1.00)');	
+			$('#wPanel3').css('transform', 'scale(1.00)');	
+		});
+
+		(function($) {
+
+		    $.noty.layouts.custom1 = {
+			name: 'custom1',
+			options: { // overrides options
+
+			},
+			container: {
+			    object: '<ul id="noty_customTop_layout_container" />',
+			    selector: 'ul#noty_customTop_layout_container',
+			    style: function() {
+
+				$(this).css({
+				    bottom: 50,
+				    left: -560,
+				    top: -568,
+				    position: 'fixed',
+				    width: '579px',
+				    height: '52px',
+				    margin: 570,
+				    padding: 0,
+				    listStyleType: 'none',
+				    zIndex: 10000000
+				});
+
+			    }
+			},
+			parent: {
+			    object: '<li />',
+			    selector: 'li',
+			    css: {}
+			},
+			css: {
+			    display: 'none',
+			    width: '411px'
+			},
+			addClass: ''
+		    };
+
+		  })(jQuery);
+
+		(function($) {
+
+		    $.noty.layouts.custom2 = {
+			name: 'custom2',
+			options: { // overrides options
+
+			},
+			container: {
+			    object: '<ul id="noty_customTopCenter_layout_container" />',
+			    selector: 'ul#noty_customTopCenter_layout_container',
+			    style: function() {
+
+				$(this).css({
+				    bottom: 50,
+				    left: -132,
+				    top: -568,
+				    position: 'fixed',
+				    width: '579px',
+				    height: '52px',
+				    margin: 570,
+				    padding: 0,
+				    listStyleType: 'none',
+				    zIndex: 10000000
+				});
+
+			    }
+			},
+			parent: {
+			    object: '<li />',
+			    selector: 'li',
+			    css: {}
+			},
+			css: {
+			    display: 'none',
+			    width: '411px'
+			},
+			addClass: ''
+		    };
+
+		  })(jQuery);	
+
+		(function($) {
+
+		    $.noty.layouts.custom3 = {
+			name: 'custom3',
+			options: { // overrides options
+
+			},
+			container: {
+			    object: '<ul id="noty_customBottomCenter_layout_container" />',
+			    selector: 'ul#noty_customBottomCenter_layout_container',
+			    style: function() {
+				$(this).css({
+				    bottom: 50,
+				    left: 297,
+			            top: -568,
+				    position: 'fixed',
+				    width: '579px',
+				    height: '52px',
+				    margin: 570,
+				    padding: 0,
+				    listStyleType: 'none',
+				    zIndex: 10000000
+				});
+
+			    }
+			},
+			parent: {
+			    object: '<li />',
+			    selector: 'li',
+			    css: {}
+			},
+			css: {
+			    display: 'none',
+			    width: '411px'
+			},
+			addClass: ''
+		    };
+
+		  })(jQuery);		
+		
+	
+	</script>
+	
+  </head>
+  <body>
+  
+  <div id="rtxData" >  			   
+	
+      <div id="accordion1" style="width:415px; margin-top:55px;">
+		<h3>Data View</h3>
+		<div style="padding-left:5px; padding-top:0px">
+
+		<hr style="height:0pt; visibility:hidden; margin-bottom:0px;" />
+			<img id="img1" src="rx.jpeg" alt="Smiley face" height="44" width="44" align="right" hspace="20">
+			<p style="color:blue; margin-left:0px">ADC Data:</p>
+		
+		<div id="node1AnalogDataA" style="width: 50%; float:left">
+			<p style="display:inline">&nbsp &nbsp ADC 1:</p> &nbsp <input type="text" id = "node1adc1" style="width:80px"/>
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp ADC 3:</p> &nbsp <input type="text" id = "node1adc3" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp <b>TEMP</b>&nbsp:</p> &nbsp <input type="text" id = "node1adc5" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		</div>
+
+		<div id="node1AnalogDataB" style="width: 50%; float:left">
+			<p style="display:inline">&nbsp &nbsp <b>LDR</b>&nbsp:</p> &nbsp&nbsp&nbsp <input type="text" id = "node1adc2" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp <b>HUM</b>&nbsp:</p> &nbsp&nbsp&nbsp<input type="text" id = "node1adc4" style="width:80px"/>
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp </p> <p></p> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:10px;" />
+		</div>
+
+		<p style="color:blue; margin-left:0px">Configure:</p>
+		
+		<!-- NODE #1: ADC 1 -->		
+		
+		<p style="display:inline">&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp MULT </p> &nbsp 
+		<p style="display:inline">&nbsp &nbsp MIN </p> &nbsp
+		<p style="display:inline">&nbsp &nbsp &nbspMAX </p> &nbsp
+		<p style="display:inline">&nbsp &nbspMODE </p> &nbsp
+		<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+
+		<p style="display:inline">&nbsp &nbsp ADC 1:</p> &nbsp 
+			<input onchange="updateMult(1,1,this.value)" type="text" id = "n1a1MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(1,1,this.value)" type="text" id = "n1a1MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(1,1,this.value)" type="text" id = "n1a1MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n1a1SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		
+		<!-- NODE #1: ADC 2 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 2:</p> &nbsp 
+			<input onchange="updateMult(1,2,this.value)" type="text" id = "n1a2MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(1,2,this.value)" type="text" id = "n1a2MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(1,2,this.value)" type="text" id = "n1a2MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n1a2SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+	
+		<!-- NODE #1: ADC 3 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 3:</p> &nbsp 
+			<input onchange="updateMult(1,3,this.value)" type="text" id = "n1a3MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(1,3,this.value)" type="text" id = "n1a3MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(1,3,this.value)" type="text" id = "n1a3MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n1a3SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+
+		<!-- NODE #1: ADC 4 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 4:</p> &nbsp 
+			<input onchange="updateMult(1,4,this.value)" type="text" id = "n1a4MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(1,4,this.value)" type="text" id = "n1a4MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(1,4,this.value)" type="text" id = "n1a4MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n1a4SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		
+		<!-- NODE #1: ADC 5 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 5:</p> &nbsp 
+			<input onchange="updateMult(1,5,this.value)" type="text" id = "n1a5MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(1,5,this.value)" type="text" id = "n1a5MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(1,5,this.value)" type="text" id = "n1a5MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n1a5SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+
+			<hr style="height:0pt; visibility:hidden; margin-bottom:20px;" />
+
+			 
+ 				
+		</div>
+		<h3>Graph View</h3>
+		<div style="padding-left:10px; padding-bottom:5px;">
+											
+			<div align="center">
+			
+			<div align="center" id="node1Panel1" style="margin-top:-10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G1:</p> &nbsp <input type="text" id = "node1g1" style="width:80px"/>
+				<select id="n1g1SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">LDR</option>
+				  <option value="ADC3">ADC 3</option>
+				  <option value="ADC4">HUM</option>
+				  <option value="ADC5">TEMP</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node1Graph1" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+			
+			<div align="center" id="node1Panel2" style="margin-top: -10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G2:</p> &nbsp <input type="text" id = "node1g2" style="width:80px"/>
+				<select id="n1g2SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">LDR</option>
+				  <option value="ADC3">ADC 3</option>
+				  <option value="ADC4">HUM</option>
+				  <option value="ADC5">TEMP</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node1Graph2" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+			
+			<div align="center" id="node1Panel3" style="margin-top: -10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G3:</p> &nbsp <input type="text" id = "node1g3" style="width:80px"/>
+				<select id="n1g3SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">LDR</option>
+				  <option value="ADC3">ADC 3</option>
+				  <option value="ADC4">HUM</option>
+				  <option value="ADC5">TEMP</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node1Graph3" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+
+		</div>			
+
+				
+		</div>
+	</div>  		<!-- id: accordian1 -->
+	
+
+  </div>     <!-- rtxData -->
+
+
+	
+ 
+ <div id="wPanel2" >    
+	<div id="accordion2" style="width:415px; margin-top:55px;">
+		<h3>Data View</h3>
+		<div style="padding-left:5px; padding-top:0px">
+			
+		<hr style="height:0pt; visibility:hidden; margin-bottom:0px;" />
+						 
+			<img id="img2" src="rx.jpeg" alt="Smiley face" height="44" width="44" align="right" hspace="20">
+			<p style="color:blue; margin-left:0px">ADC Data:</p>
+		
+		<div id="node2AnalogDataA" style="width: 50%; float:left">
+			<p style="display:inline">&nbsp &nbsp ADC 1:</p> &nbsp <input type="text" id = "node2adc1" style="width:80px"/>
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp <b>LDR</b> &nbsp :</p> &nbsp <input type="text" id = "node2adc3" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp ADC 5:</p> &nbsp <input type="text" id = "node2adc5" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		</div>
+
+		<div id="node2AnalogDataB" style="width: 50%; float:left">
+			<p style="display:inline">&nbsp &nbsp<b>M SEN</b>:</p> &nbsp <input type="text" id = "node2adc2" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp ADC 4:</p> &nbsp <input type="text" id = "node2adc4" style="width:80px"/>
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp </p> <p></p> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:10px;" />
+
+		</div>
+
+		<p style="color:blue; margin-left:0px">Configure:</p>
+		
+		<!-- NODE #2: ADC 1 -->		
+		
+		<p style="display:inline">&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp MULT </p> &nbsp 
+		<p style="display:inline">&nbsp &nbsp MIN </p> &nbsp
+		<p style="display:inline">&nbsp &nbsp &nbspMAX </p> &nbsp
+		<p style="display:inline">&nbsp &nbspMODE </p> &nbsp
+		<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+
+		<p style="display:inline">&nbsp &nbsp ADC 1:</p> &nbsp 
+			<input onchange="updateMult(2,1,this.value)" type="text" id = "n2a1MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(2,1,this.value)" type="text" id = "n2a1MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(2,1,this.value)" type="text" id = "n2a1MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n2a1SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		
+		<!-- NODE #2: ADC 2 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 2:</p> &nbsp 
+			<input onchange="updateMult(2,2,this.value)" type="text" id = "n2a2MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(2,2,this.value)" type="text" id = "n2a2MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(2,2,this.value)" type="text" id = "n2a2MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n2a2SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+	
+		<!-- NODE #2: ADC 3 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 3:</p> &nbsp 
+			<input onchange="updateMult(2,3,this.value)" type="text" id = "n2a3MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(2,3,this.value)" type="text" id = "n2a3MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(2,3,this.value)" type="text" id = "n2a3MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n2a3SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+
+		<!-- NODE #2: ADC 4 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 4:</p> &nbsp 
+			<input onchange="updateMult(2,4,this.value)" type="text" id = "n2a4MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(2,4,this.value)" type="text" id = "n2a4MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(2,4,this.value)" type="text" id = "n2a4MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n2a4SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />			
+
+		<!-- NODE #2: ADC 5 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 5:</p> &nbsp 
+			<input onchange="updateMult(2,5,this.value)" type="text" id = "n2a5MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(2,5,this.value)" type="text" id = "n2a5MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(2,5,this.value)" type="text" id = "n2a5MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n2a5SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+
+			<hr style="height:0pt; visibility:hidden; margin-bottom:20px;" />
+	
+		</div>
+		<h3>Graph View</h3>
+		<div style="padding-left:10px; padding-bottom:5px;">
+											
+			<div align="center">
+			
+			<div align="center" id="node2Panel1" style="margin-top:-10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G1:</p> &nbsp <input type="text" id = "node2g1" style="width:80px"/>
+				<select id="n2g1SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">M SEN</option>
+				  <option value="ADC3">LDR</option>
+				  <option value="ADC4">ADC 4</option>
+				  <option value="ADC5">ADC 5</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node2Graph1" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+			
+			<div align="center" id="node2Panel2" style="margin-top: -10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G2:</p> &nbsp <input type="text" id = "node2g2" style="width:80px"/>
+				<select id="n2g2SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">M SEN</option>
+				  <option value="ADC3">LDR</option>
+				  <option value="ADC4">ADC 4</option>
+				  <option value="ADC5">ADC 5</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node2Graph2" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+			
+			<div align="center" id="node2Panel3" style="margin-top: -10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G3:</p> &nbsp <input type="text" id = "node2g3" style="width:80px"/>
+				<select id="n2g3SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">M SEN</option>
+				  <option value="ADC3">LDR</option>
+				  <option value="ADC4">ADC 4</option>
+				  <option value="ADC5">ADC 5</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node2Graph3" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>	
+
+		</div>			
+
+				
+		</div>
+	</div>  		<!-- id: accordian2 -->
+		
+
+	
+ </div>  <!-- id: wPanel2 -->
+
+ <div id="wPanel3">
+	<div id="accordion3" style="width:415px; margin-top:55px;">
+		<h3>Data View</h3>
+		<div style="padding-left:5px; padding-top:0px">
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:0px;" />
+			 
+			<img id="img3" src="rx.jpeg" alt="Smiley face" height="44" width="44" align="right" hspace="20">
+			<p style="color:blue; margin-left:0px">ADC Data: </p>
+		<div id="node3AnalogDataA" style="width: 50%; float:left">
+			<p style="display:inline">&nbsp &nbsp ADC 1:</p> &nbsp <input type="text" id = "node3adc1" style="width:80px"/>
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp ADC 3:</p> &nbsp <input type="text" id = "node3adc3" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp <b>TEMP</b>&nbsp:</p> &nbsp <input type="text" id = "node3adc5" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		</div>
+		<div id="node3AnalogDataB" style="width: 50%; float:left">
+			<p style="display:inline">&nbsp &nbsp <b>LDR</b>&nbsp:</p> &nbsp&nbsp&nbsp <input type="text" id = "node3adc2" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp <b>HUM</b>&nbsp:</p> &nbsp&nbsp&nbsp<input type="text" id = "node3adc4" style="width:80px"/>
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp </p> <p></p> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:10px;" />
+		</div>
+			
+		<p style="color:blue; margin-left:0px">Configure:</p>
+		
+		<!-- NODE #3: ADC 1 -->		
+		
+		<p style="display:inline">&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp MULT </p> &nbsp 
+		<p style="display:inline">&nbsp &nbsp MIN </p> &nbsp
+		<p style="display:inline">&nbsp &nbsp &nbspMAX </p> &nbsp
+		<p style="display:inline">&nbsp &nbspMODE </p> &nbsp
+		<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+
+		<p style="display:inline">&nbsp &nbsp ADC 1:</p> &nbsp 
+			<input onchange="updateMult(3,1,this.value)" type="text" id = "n3a1MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(3,1,this.value)" type="text" id = "n3a1MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(3,1,this.value)" type="text" id = "n3a1MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n3a1SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		
+		<!-- NODE #3: ADC 2 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 2:</p> &nbsp 
+			<input onchange="updateMult(3,2,this.value)" type="text" id = "n3a2MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(3,2,this.value)" type="text" id = "n3a2MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(3,2,this.value)" type="text" id = "n3a2MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n3a2SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+	
+		<!-- NODE #3: ADC 3 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 3:</p> &nbsp 
+			<input onchange="updateMult(3,3,this.value)" type="text" id = "n3a3MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(3,3,this.value)" type="text" id = "n3a3MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(3,3,this.value)" type="text" id = "n3a3MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n3a3SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+
+		<!-- NODE #3: ADC 4 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 4:</p> &nbsp 
+			<input onchange="updateMult(3,4,this.value)" type="text" id = "n3a4MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(3,4,this.value)" type="text" id = "n3a4MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(3,4,this.value)" type="text" id = "n3a4MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n3a4SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		
+		<!-- NODE #3: ADC 5 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 5:</p> &nbsp 
+			<input onchange="updateMult(3,5,this.value)" type="text" id = "n3a5MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(3,5,this.value)" type="text" id = "n3a5MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(3,5,this.value)" type="text" id = "n3a5MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n3a5SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+
+			<hr style="height:0pt; visibility:hidden; margin-bottom:20px;" />	
+
+		</div>
+		<h3>Graph View</h3>
+		<div style="padding-left:10px; padding-bottom:5px;">
+											
+			<div align="center">
+			
+			<div align="center" id="node3Panel1" style="margin-top:-10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G1:</p> &nbsp <input type="text" id = "node3g1" style="width:80px"/>
+				<select id="n3g1SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">LDR</option>
+				  <option value="ADC3">ADC 3</option>
+				  <option value="ADC4">HUM</option>
+				  <option value="ADC5">TEMP</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node3Graph1" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+			
+			<div align="center" id="node3Panel2" style="margin-top:-10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G2:</p> &nbsp <input type="text" id = "node3g2" style="width:80px"/>
+				<select id="n3g2SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">LDR</option>
+				  <option value="ADC3">ADC 3</option>
+				  <option value="ADC4">HUM</option>
+				  <option value="ADC5">TEMP</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node3Graph2" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+			
+			<div align="center" id="node3Panel3" style="margin-top: -10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G3:</p> &nbsp <input type="text" id = "node3g3" style="width:80px"/>
+				<select id="n3g3SEL">
+				  <option value="ADC1">ADC 1</option>
+				  <option value="ADC2">LDR</option>
+				  <option value="ADC3">ADC 3</option>
+				  <option value="ADC4">HUM</option>
+				  <option value="ADC5">TEMP</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node3Graph3" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>	
+
+		</div>			
+
+				
+		</div>
+	</div>  		<!-- id: accordian3 -->
+</div>	 			<!-- id: wPanel3 -->
+
+<div id="wPanel4">
+	<div id="accordion4" style="width:415px; margin-top:55px;">
+		<h3>Data View</h3>
+		<div style="padding-left:5px; padding-top:0px">
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:0px;" />
+			 
+			<img id="img4" src="rx.jpeg" alt="Smiley face" height="44" width="44" align="right" hspace="20">
+			<p style="color:blue; margin-left:0px">ADC Data:</p>
+		<div id="node4AnalogDataA" style="width: 50%; float:left">
+			<p style="display:inline">&nbsp &nbsp <b>LM35</b>&nbsp :</p> &nbsp <input type="text" id = "node4adc1" style="width:80px"/>
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp <b>MQ2: </b>&nbsp:</p> &nbsp <input type="text" id = "node4adc3" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp ADC 5:</p> &nbsp <input type="text" id = "node4adc5" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		</div>
+		<div id="node4AnalogDataB" style="width: 50%; float:left">
+			<p style="display:inline">&nbsp &nbsp <b>HI300</b>&nbsp:</p> &nbsp <input type="text" id = "node4adc2" style="width:80px"/> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp ADC 4:</p> &nbsp <input type="text" id = "node4adc4" style="width:80px"/>
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+			<p style="display:inline">&nbsp &nbsp </p> <p></p> 
+			<hr style="height:0pt; visibility:hidden; margin-bottom:10px;" />
+		</div>
+			
+		<p style="color:blue; margin-left:0px">Configure:</p>
+		
+		<!-- NODE #4: ADC 1 -->		
+		
+		<p style="display:inline">&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp MULT </p> &nbsp 
+		<p style="display:inline">&nbsp &nbsp MIN </p> &nbsp
+		<p style="display:inline">&nbsp &nbsp &nbspMAX </p> &nbsp
+		<p style="display:inline">&nbsp &nbspMODE </p> &nbsp
+		<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+
+		<p style="display:inline">&nbsp &nbsp ADC 1:</p> &nbsp 
+			<input onchange="updateMult(4,1,this.value)" type="text" id = "n4a1MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(4,1,this.value)" type="text" id = "n4a1MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(4,1,this.value)" type="text" id = "n4a1MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n4a1SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		
+		<!-- NODE #4: ADC 2 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 2:</p> &nbsp 
+			<input onchange="updateMult(4,2,this.value)" type="text" id = "n4a2MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(4,2,this.value)" type="text" id = "n4a2MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(4,2,this.value)" type="text" id = "n4a2MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n4a2SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+	
+		<!-- NODE #4: ADC 3 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 3:</p> &nbsp 
+			<input onchange="updateMult(4,3,this.value)" type="text" id = "n4a3MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(4,3,this.value)" type="text" id = "n4a3MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(4,3,this.value)" type="text" id = "n4a3MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n4a3SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+
+		<!-- NODE #4: ADC 4 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 4:</p> &nbsp 
+			<input onchange="updateMult(4,4,this.value)" type="text" id = "n4a4MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(4,4,this.value)" type="text" id = "n344MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(4,4,this.value)" type="text" id = "n344MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n4a4SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+			
+			<hr style="height:0pt; visibility:hidden; margin-bottom:4px;" />
+		
+		<!-- NODE #4: ADC 5 -->		
+		<p style="display:inline">&nbsp &nbsp ADC 5:</p> &nbsp 
+			<input onchange="updateMult(4,5,this.value)" type="text" id = "n4a5MULT" style="width:60px"/>&nbsp 
+			<input onchange="updateMin(4,5,this.value)" type="text" id = "n4a5MIN" style="width:60px"/>&nbsp
+			<input onchange="updateMax(4,5,this.value)" type="text" id = "n4a5MAX" style="width:60px"/>&nbsp
+			
+			 <select id="n4a5SEL">
+				  <option value="OFF">OFF</option>
+				  <option value="IN">IN</option>
+				  <option value="OUT">OUT</option>
+			 </select> 
+
+			<hr style="height:0pt; visibility:hidden; margin-bottom:20px;" />	
+
+		</div>
+		<h3>Graph View</h3>
+		<div style="padding-left:10px; padding-bottom:5px;">
+								
+			<div align="center">			
+
+			<div align="center" id="node4Panel1" style="margin-top:-10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G1:</p> &nbsp <input type="text" id = "node4g1" style="width:80px"/>
+				<select id="n4g1SEL">
+				  <option value="ADC1">LM35</option>
+				  <option value="ADC2">HI300</option>
+				  <option value="ADC3">MQ2</option>
+				  <option value="ADC4">ADC 4</option>
+				  <option value="ADC5">ADC 5</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node4Graph1" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+			
+			<div align="center" id="node4Panel2" style="margin-top:-10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G2:</p> &nbsp <input type="text" id = "node4g2" style="width:80px"/>
+				<select id="n4g2SEL">
+				  <option value="ADC1">LM35</option>
+				  <option value="ADC2">HI300</option>
+				  <option value="ADC3">MQ2</option>
+				  <option value="ADC4">ADC 4</option>
+				  <option value="ADC5">ADC 5</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node4Graph2" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>
+			
+			<div align="center" id="node4Panel3" style="margin-top: -10px; margin-left: -9px;"> <br>
+				<p style="display:inline">G3:</p> &nbsp <input type="text" id = "node4g3" style="width:80px"/>
+				<select id="n4g3SEL">
+				  <option value="ADC1">LM35</option>
+				  <option value="ADC2">HI300</option>
+				  <option value="ADC3">MQ2</option>
+				  <option value="ADC4">ADC 4</option>
+				  <option value="ADC5">ADC 5</option>
+			 	</select> 
+				<hr style="height:0pt; visibility:hidden; margin-bottom:12px;" />
+				<canvas id="node4Graph3" width="395" height="120" style="margin-right:1px;margin-top:-18px"></canvas> 
+			</div>	
+
+		</div>			
+
+				
+		</div>
+	</div>  		<!-- id: accordian3 -->
+</div>	 			<!-- id: wPanel3 -->
+
+	  
+</body>
+</html>

@@ -1,0 +1,1 @@
+"./main.obj" "./source/NRF24L01.obj" "./source/UCB0_SPI.obj" "../lnk_msp430g2553.cmd" -l"libc.a" 
